@@ -36,7 +36,7 @@ covid_response <- read_csv("https://raw.githubusercontent.com/OxCGRT/covid-polic
       )
 covid_response %>% head()
 
-regionclassification <- read_tsv("WorldRegions.csv",skip = 1)
+regionclassification <- read_tsv("WorldRegions (1).csv",skip = 1)
 regionclassification %>% head()
 
 area <- read_tsv("AREA.csv", col_names = c("Country", "Area", "ranking", "reigon"),skip = 1)
@@ -70,6 +70,12 @@ urbanization
 urbanization_tidy <- urbanization %>%
   select(`Country Name`, `Country Code`, `2020`) %>%
   rename("Urbanization Level" = `2020`)
+```
+```{r}
+covid_response_new <- covid_response %>% 
+  select(`CountryName`,CountryCode,Date,`C2_Workplace closing`,`C5_Close public transport`,`C4_Restrictions on gatherings`,`C6_Stay at home requirements` ,ConfirmedCases,GovernmentResponseIndex,EconomicSupportIndex)
+
+covid_response_tidy <- covid_response_new[rowSums(is.na(covid_response_tidy)) == 0, ]
 ```
 
 
@@ -168,7 +174,7 @@ urbanization_covid_date2 %>%
   ggplot(mapping = aes(x = `Urbanization Level`, y = new_cases))+
   ggtitle("2021-08-06")+
   geom_boxplot()
-
+urbanization_covid_date1
 urbanization_covid_date1 %>% 
   ggplot(mapping = aes(x = `Urbanization Level`, y =new_cases))+
   ggtitle("2021-04-08")+
@@ -444,3 +450,61 @@ The total vaccinations between both dates is also interesting. As we can see hig
 Another thing that we can see is at how much of a higher rate the upper income classes gets vaccinated than the lower classes. in the first date the higher income groups (high income and upper middle income) make up more then 80 percent of the vaccinated population and more than 80 percent of the people getting vaccinated on the particular day. whilst having the almost the same amount of population percentage
 
 This is concerning as it shows that the lower classes are not getting vaccinated.
+
+Analyzing Area 
+We decided to look at how Area affects covid response 
+```{r}
+area
+covid_response_Date1 <- covid_response_tidy %>%
+  filter(Date == "2021-04-28")
+  na.omit(covid_response_tidy)
+covid_response_Date2 <- covid_response_tidy %>%
+  filter(Date == "2021-08-06")
+  na.omit(covid_response_tidy)
+covid_response_Date1
+covid_response_Date2
+```
+Merging Area and covid response
+```{r}
+area_covid_response_Date1 <- area %>%
+  right_join(covid_response_Date1,by = c("Country" = "CountryName"))
+area_covid_response_Date2 <- area %>%
+  right_join(covid_response_Date2,by = c("Country" = "CountryName"))
+area_covid_response_Date1
+area_covid_response_Date2
+glimpse(area_covid_response_Date2)
+```
+Now we will use interquartile range in order to find the outliers
+```{r}
+boxplot.stats(area_covid_response_Date1$GovernmentResponseIndex)$out
+```
+Looking at the outcome of the code above you can tell that there are a total of 7 datapoints that are considered outliers in 2021-04-28. Now we will look at where all the other data points in this variable fall into 
+```{r}
+ggplot(area_covid_response_Date1) +
+  aes(x = "", y = GovernmentResponseIndex) +
+  geom_boxplot(fill = "#0c4c8a") +
+  theme_minimal()
+```
+Majority of the data are between 50 and 70 which makes it conserning that 7 countries have such a low Government response to covid. Now lets so which countries are the outliers
+```{r}
+area_covid_response_Date1 %>%
+  filter(GovernmentResponseIndex < 21)
+```
+As you can see most of these are countries with a fairly low ranking, but the three outliers here seem to have the lowest government response yet they are ranked higher then the countries with a high response by the government. 
+
+Now lets look at 2021-08-06
+```{r}
+ggplot(area_covid_response_Date2) +
+  aes(x = "", y = GovernmentResponseIndex) +
+  geom_boxplot(fill = "#0c4c8a") +
+  theme_minimal()
+boxplot.stats(area_covid_response_Date2$GovernmentResponseIndex)$out
+```
+Now looking at the data 4 months later there is less outliers but the response has lowered only by a small amount. There seems to be only 2 outliers, which reveals that more countries have stepped up between the two months. 
+```{r}
+area_covid_response_Date2 %>%
+  filter(GovernmentResponseIndex < 21)
+```
+Out of the seven only two counties have the lowest government response 
+
+Now we will look at the correlation between the governmnet response and Area
